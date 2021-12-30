@@ -34,11 +34,13 @@ if __name__ == "__main__":
         "profile.default_content_setting_values.notifications": 2
     })
 
+
+    #driver = webdriver.Chrome(chrome_options=opt) #Old Working one..
     driver = webdriver.Chrome(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install(), options=opt)
     driver.get(startUrl)
 
-    print("driver URL: %s" % driver.command_executor._url)
-    print("driver session: %s" % driver.session_id)
+    print(f"driver URL: {driver.command_executor._url}")
+    print("driver session:", driver.session_id)
 
     # keep running, so the browser window stays open:
     while True:

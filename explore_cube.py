@@ -17,9 +17,9 @@ import sys
 import time
 
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
-
 
 # each room has four exits (ie. directions) which can be explored:
 DIR_UP = "u"
@@ -32,9 +32,9 @@ allDirections = (DIR_UP, DIR_RIGHT, DIR_DOWN, DIR_LEFT)
 
 
 class CubeRooms:
-    "Manages information about the rooms and connections in the cube."
+    """Manages information about the rooms and connections in the cube."""
 
-    def __init__ (self, jsonFile):
+    def __init__(self, jsonFile):
         "jsonFile: the file from which to load initial rooms, and where new information will be written to."
         self.jsonFile = jsonFile
         self.rooms = {}
@@ -51,23 +51,23 @@ class CubeRooms:
         except:
             print("no rooms loaded")
         else:
-            print("loaded %d start rooms" % len(self.rooms))
-            self._save() # save loaded data again, to get a nicely formatted file
+            print(f"loaded {len(self.rooms)} start rooms")
+            self._save()  # save loaded data again, to get a nicely formatted file
 
-    def addRoom (self, startRoom, direction, resultRoom):
+    def addRoom(self, startRoom, direction, resultRoom):
         """
         Adds a connection from startRoom: going in the indicated direction leads into resultRoom.
         startRoom and resultRoom must be integer room ids.
         """
         assert direction in allDirections
 
-        if not(startRoom in self.rooms):
+        if not (startRoom in self.rooms):
             self.rooms[startRoom] = {}
         if direction in self.rooms[startRoom]:
-            print("this result (%d,%s -> %d) already exists" % (startRoom, direction, resultRoom))
+            print(f"this result ({startRoom},{direction} -> {resultRoom}) already exists")
             if self.rooms[startRoom][direction] != resultRoom:
-                print("ERROR: new result (%d,%s -> %d) does not match previous result (%d,%s -> %d)!" % (
-                    startRoom, direction, resultRoom, startRoom, direction, self.rooms[startRoom][direction]))
+                print(
+                    f"ERROR: new result ({startRoom},{direction} -> {resultRoom}) does not match previous result ({startRoom},{direction} -> {self.rooms[startRoom][direction]})!")
                 sys.exit(1)
             else:
                 return
@@ -75,17 +75,17 @@ class CubeRooms:
         self.rooms[startRoom][direction] = resultRoom
         self._save()
 
-    def get (self, room):
+    def get(self, room):
         """
         Returns a dict of known connections from the specified room.
         Dict keys are the directions; values are the target rooms.
         """
-        if not(room in self.rooms):
+        if not (room in self.rooms):
             return {}
         return self.rooms[room]
 
     def _save(self):
-        "Saves the current room graph to file, and creates a backup."
+        """Saves the current room graph to file, and creates a backup."""
         with open(self.jsonFile, "w") as fp:
             json.dump(self.rooms, fp, indent=4)
 
@@ -106,23 +106,23 @@ class CubeRooms:
             for d in self.rooms[at]:
                 next = self.rooms[at][d]
                 if next not in dist:
-                    dist[next] = [dist[at], (next, d) ]
+                    dist[next] = [dist[at], (next, d)]
                     q.append(next)
         return dist.get(end)
 
     def getPathToNextIncomplete(self, startRoom):
-        "Returns the path to the next room where at least one direction has not yet been explored."
+        """Returns the path to the next room where at least one direction has not yet been explored."""
 
         def unwrap(p):
             if isinstance(p, list):
                 return unwrap(p[0]) + p[1:]
             else:
-                return [ p ]
+                return [p]
 
         targetPath = None
         for targetRoom in self.rooms:
             if len(self.rooms[targetRoom]) < 4:
-                print("candidate: %d" % targetRoom)
+                print("candidate: ", targetRoom)
                 path = unwrap(self.find_shortest_path(startRoom, targetRoom))[1:]
                 if path and (targetPath is None or len(path) < len(targetPath)):
                     targetPath = path
@@ -131,12 +131,12 @@ class CubeRooms:
             print("all rooms are complete!")
             return None
 
-        print("shortest path to incomplete room: %s" % targetPath)
+        print("shortest path to incomplete room:", targetPath)
         return targetPath
 
 
 if len(sys.argv) != 4:
-    print("Usage: %s <room graph JSON file> <Selenium webdriver URL> <Selenium webdriver session id>" % sys.argv[0])
+    print(f"Usage: {sys.argv[0]} <room graph JSON file> <Selenium webdriver URL> <Selenium webdriver session id>")
     sys.exit(1)
 
 roomJsonFile = sys.argv[1]
@@ -146,41 +146,41 @@ driverSession = sys.argv[3]
 rooms = CubeRooms(roomJsonFile)
 
 driver = webdriver.Remote(command_executor=driverUrl, desired_capabilities={})
-driver.close() # this prevents the dummy browser
+driver.close()  # this prevents the dummy browser
 driver.session_id = driverSession
 
 
 def getRoomId(url):
-    "Extracts the room id (as integer) from a room URL."
-    return int(re.search(r"(\d+)\.json", url).group(1))
+    """Extracts the room id (as integer) from a room URL."""
+    roomNumber = (re.search(r"(\d+)\.json", url)).group(1)
+    return roomNumber
+
 
 # walk through the maze:
 while True:
     oldUrl = driver.current_url
     startId = getRoomId(oldUrl)
-    print("old room: %d" % startId)
+    print("old room:", startId)
 
     knownResults = rooms.get(startId)
-    print("have already explored %d directions from here (%s)" % (
-        len(knownResults), ",".join(list(knownResults.keys()))))
+    print("have already explored %d directions from here (%s)" % (len(knownResults), ",".join(knownResults.keys())))
     nextDir = None
     for d in allDirections:
         if d not in knownResults:
             nextDir = d
             break
     if nextDir is None:
-        print("have already explored all directions of %d!" % startId)
+        print(f"have already explored all directions of {startId}!")
         path = rooms.getPathToNextIncomplete(startId)
-        print("path to next goal: %s" % path)
+        print("path to next goal:", path)
         nextDir = path[0][1]
 
-    print("next direction: '%s'" % nextDir)
+    print("next direction:", nextDir)
 
     # set up Selenium "action chains" which can be executed to walk into the specified direction:
-    cv = driver.find_element_by_tag_name("canvas")
+    cv = driver.find_element(By.TAG_NAME, "canvas")
 
-    actionChains = {}
-    actionChains[DIR_UP] = ActionChains(driver)
+    actionChains = {DIR_UP: ActionChains(driver)}
     actionChains[DIR_UP].click(cv).key_down(Keys.SHIFT).key_down(Keys.ARROW_UP)
     actionChains[DIR_DOWN] = ActionChains(driver)
     actionChains[DIR_DOWN].click(cv).key_down(Keys.SHIFT).key_down(Keys.ARROW_DOWN)
@@ -195,14 +195,14 @@ while True:
     for i in range(10):
         time.sleep(0.5)
         newUrl = driver.current_url
-        print("new room: %d" % getRoomId(newUrl))
+        print("new room:", getRoomId(newUrl))
         if newUrl != oldUrl:
             break
         print("waiting a bit more...")
     else:
-        print("%d,%s leads again to %d!" % (startId, nextDir, startId))
+        print(f"{startId},{nextDir} leads again to {startId}!")
         sys.exit(1)
 
     rooms.addRoom(startId, nextDir, getRoomId(newUrl))
 
-    time.sleep(0.5)
+    time.sleep(0.2)
