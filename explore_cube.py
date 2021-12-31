@@ -152,8 +152,7 @@ driver.session_id = driverSession
 
 def getRoomId(url):
     """Extracts the room id (as integer) from a room URL."""
-    roomNumber = (re.search(r"(\d+)\.json", url)).group(1)
-    return roomNumber
+    return int(re.search(r"(\d+)\.json", url).group(1))
 
 
 # walk through the maze:
@@ -193,16 +192,15 @@ while True:
 
     # wait for a few seconds until room URL has changed:
     for i in range(10):
-        time.sleep(0.5)
         newUrl = driver.current_url
-        print("new room:", getRoomId(newUrl))
-        if newUrl != oldUrl:
+        # print("OlD Room: ", getRoomId(oldUrl), "NEW Room: ",  getRoomId(newUrl))
+        if getRoomId(newUrl) != getRoomId(oldUrl):
             break
         print("waiting a bit more...")
+        time.sleep(0.2)
     else:
-        print(f"{startId},{nextDir} leads again to {startId}!")
+        print(startId, nextDir, "leads again to", startId, " !")
         sys.exit(1)
 
     rooms.addRoom(startId, nextDir, getRoomId(newUrl))
-
     time.sleep(0.2)
